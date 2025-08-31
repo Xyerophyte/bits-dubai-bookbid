@@ -270,7 +270,7 @@ function CheckoutForm({ book, bookId }: { book: Book; bookId: string }) {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-start space-x-2">
-              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={setAgreedToTerms} />
+              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(!!checked)} />
               <Label htmlFor="terms" className="text-sm leading-relaxed">
                 I agree to the{" "}
                 <Link href="/terms" className="text-primary hover:underline">
