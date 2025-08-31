@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { BookOpen, Mail, Lock, User, ArrowLeft, Play } from "lucide-react"
+import { BookOpen, Mail, Lock, User, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -45,26 +45,6 @@ export default function AuthPage() {
     }
   }
 
-  const handleTrialAccount = () => {
-    // Set trial account flag in localStorage
-    localStorage.setItem("isTrialAccount", "true")
-    localStorage.setItem(
-      "trialUser",
-      JSON.stringify({
-        id: "trial-user",
-        name: "Trial User",
-        email: "trial@example.com",
-        avatar: "/student-avatar.png",
-        joinDate: new Date().toISOString(),
-        rating: 4.8,
-        totalSales: 12,
-        totalPurchases: 8,
-      }),
-    )
-
-    // Redirect to dashboard
-    router.push("/dashboard")
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,24 +118,6 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-emerald-900">Try BookBid Now</h3>
-                  <p className="text-sm text-emerald-700">Explore all features with a demo account</p>
-                </div>
-                <Button
-                  onClick={handleTrialAccount}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  disabled={isLoading}
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Trial
-                </Button>
-              </div>
-            </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">

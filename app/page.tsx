@@ -1,10 +1,38 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, Users, Shield, Zap, ArrowRight, Star } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const supabase = createClient()
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+      if (user) {
+        // Optionally redirect authenticated users to dashboard
+        // Uncomment the line below if you want to auto-redirect
+        // router.push('/dashboard')
+      }
+    }
+
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase, router])
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -15,27 +43,54 @@ export default function LandingPage() {
             <span className="text-xl font-bold text-foreground">BITS Dubai BookBid</span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
-            <Link
-              href="#how-it-works"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              How It Works
-            </Link>
-            <Link
-              href="#features"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Features
-            </Link>
-            <Link
-              href="/auth"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Log In
-            </Link>
-            <Button asChild>
-              <Link href="/auth">Get Started</Link>
-            </Button>
+            {isAuthenticated ? (
+              // Authenticated user navigation
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/books"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Browse Books
+                </Link>
+                <Button asChild>
+                  <Link href="/sell">Sell Book</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/profile">Profile</Link>
+                </Button>
+              </>
+            ) : (
+              // Guest user navigation
+              <>
+                <Link
+                  href="#how-it-works"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  How It Works
+                </Link>
+                <Link
+                  href="#features"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Features
+                </Link>
+                <Link
+                  href="/auth"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Log In
+                </Link>
+                <Button asChild>
+                  <Link href="/auth">Get Started</Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
