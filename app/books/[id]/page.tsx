@@ -164,11 +164,11 @@ export default function BookDetailPage() {
             {/* Enhanced Bidding Interface */}
             <BiddingInterface
               bookId={mockBook.id.toString()}
-              currentBid={mockBook.currentBid}
+              initialCurrentBid={mockBook.currentBid}
               buyNowPrice={mockBook.buyNowPrice}
               minBidIncrement={mockBook.minBidIncrement}
               timeLeft={mockBook.timeLeft}
-              bidCount={mockBook.bidCount}
+              initialBidCount={mockBook.bidCount}
               isAuctionActive={mockBook.isAuctionActive}
             />
 
