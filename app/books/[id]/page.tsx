@@ -324,7 +324,9 @@ export default function BookDetailPage() {
               </div>
 
               <div className="flex items-center gap-2 mb-4">
-                <Badge className={getConditionColor(book.condition)}>{book.condition}</Badge>
+                <Badge className={getConditionColor(book.condition)}>
+                  {book.condition === 'like_new' ? 'Like New' : book.condition.charAt(0).toUpperCase() + book.condition.slice(1)}
+                </Badge>
                 <Badge variant="outline">{book.subject}</Badge>
               </div>
 

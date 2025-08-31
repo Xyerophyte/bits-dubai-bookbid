@@ -32,6 +32,7 @@ export default function SellPage() {
     minBidPrice: "",
     buyNowPrice: "",
     subject: "",
+    courseCode: "",
   })
   const router = useRouter()
   const supabase = createClient()
@@ -110,6 +111,7 @@ export default function SellPage() {
           author: formData.author,
           edition: formData.edition,
           isbn: formData.isbn,
+          course_code: formData.courseCode,
           condition: formData.condition,
           description: formData.description,
           listing_type: formData.buyNowPrice ? 'both' : 'auction',
@@ -141,6 +143,7 @@ export default function SellPage() {
         minBidPrice: "",
         buyNowPrice: "",
         subject: "",
+        courseCode: "",
       })
       setImages([])
       
@@ -324,6 +327,19 @@ export default function SellPage() {
                     onChange={(e) => setFormData((prev) => ({ ...prev, isbn: e.target.value }))}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="courseCode">Course Code</Label>
+                <Input
+                  id="courseCode"
+                  placeholder="e.g., MATH F111, CS F211, PHY F110"
+                  value={formData.courseCode}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, courseCode: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the BITS Dubai course code this book is used for (e.g., MATH F111, CS F211)
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

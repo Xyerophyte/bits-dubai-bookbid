@@ -154,7 +154,7 @@ export default function BooksPage() {
 
       // Condition filter
       const matchesCondition =
-        selectedCondition === "all" || book.condition.toLowerCase().replace(" ", "-") === selectedCondition
+        selectedCondition === "all" || book.condition.toLowerCase().replace(" ", "_") === selectedCondition
 
       // Price range filter
       const price = book.buyNowPrice || book.currentBid
@@ -471,7 +471,7 @@ export default function BooksPage() {
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="secondary" className={`text-xs ${getConditionColor(book.condition)}`}>
-                      {book.condition}
+                      {book.condition === 'like_new' ? 'Like New' : book.condition.charAt(0).toUpperCase() + book.condition.slice(1)}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
                       {book.course}
