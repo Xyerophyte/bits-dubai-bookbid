@@ -97,7 +97,7 @@ export default function BooksPage() {
         author: book.author || 'Unknown Author',
         edition: book.edition || '',
         condition: book.condition,
-        subject: book.categories?.name || 'General',
+        subject: (Array.isArray(book.categories) ? book.categories[0]?.name : book.categories?.name) || 'General',
         currentBid: book.current_bid || book.starting_price,
         buyNowPrice: book.buy_now_price,
         timeLeft: calculateTimeLeft(book.auction_end_time),

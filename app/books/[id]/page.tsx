@@ -135,7 +135,7 @@ export default function BookDetailPage() {
             edition: bookData.edition || '',
             isbn: bookData.isbn || '',
             condition: bookData.condition,
-            subject: bookData.categories?.name || 'General',
+            subject: (Array.isArray(bookData.categories) ? bookData.categories[0]?.name : bookData.categories?.name) || 'General',
             description: bookData.description || '',
             currentBid: bookData.current_bid || bookData.starting_price,
             buyNowPrice: bookData.buy_now_price,
