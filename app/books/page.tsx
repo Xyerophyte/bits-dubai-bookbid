@@ -380,13 +380,13 @@ export default function BooksPage() {
                 <Label className="text-sm font-medium">Listing Type</Label>
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="buy-now" checked={onlyBuyNow} onCheckedChange={setOnlyBuyNow} />
+                    <Checkbox id="buy-now" checked={onlyBuyNow} onCheckedChange={(checked) => setOnlyBuyNow(!!checked)} />
                     <Label htmlFor="buy-now" className="text-sm cursor-pointer">
                       Buy Now Available
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="auction-only" checked={onlyAuction} onCheckedChange={setOnlyAuction} />
+                    <Checkbox id="auction-only" checked={onlyAuction} onCheckedChange={(checked) => setOnlyAuction(!!checked)} />
                     <Label htmlFor="auction-only" className="text-sm cursor-pointer">
                       Auction Only
                     </Label>
