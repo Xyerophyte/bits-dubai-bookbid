@@ -143,9 +143,9 @@ export default function BookDetailPage() {
             timeLeft: calculateTimeLeft(bookData.auction_end_time),
             images: bookData.images && bookData.images.length > 0 ? bookData.images : ['/placeholder.svg'],
             seller: {
-              id: bookData.profiles?.id,
-              name: bookData.profiles?.full_name || 'Anonymous',
-              avatar: bookData.profiles?.avatar_url || '/placeholder.svg',
+              id: (bookData.profiles as any)?.id,
+              name: (bookData.profiles as any)?.full_name || 'Anonymous',
+              avatar: (bookData.profiles as any)?.avatar_url || '/placeholder.svg',
               rating: 4.8, // Mock rating for now
               totalSales: 12, // Mock data
               joinedDate: 'Sep 2024', // Mock data

@@ -102,7 +102,7 @@ export default function BooksPage() {
         buyNowPrice: book.buy_now_price,
         timeLeft: calculateTimeLeft(book.auction_end_time),
         imageUrl: book.images?.[0] || '/placeholder.svg',
-        seller: book.profiles?.full_name || 'Anonymous',
+        seller: (book.profiles as any)?.full_name || 'Anonymous',
         bidCount: book.bid_count || 0,
         course: book.course_code || '',
         isbn: book.isbn || '',
