@@ -31,7 +31,7 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
           queryParams: {
             hd: "dubai.bits-pilani.ac.in", // Restrict to BITS Dubai domain
           },
@@ -94,7 +94,7 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
             data: {
               full_name: `${firstName} ${lastName}`,
               first_name: firstName,
