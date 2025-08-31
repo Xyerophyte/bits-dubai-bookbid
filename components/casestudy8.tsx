@@ -14,16 +14,18 @@ const Casestudy8 = ({ project }: { project?: any }) => {
   }
 
   const defaultProject: ProjectData = {
+    id: "mercury-design-system",
     title: "How Mercury uses shadcn/ui to build their design system",
     description:
       "Once upon a time, in a far-off land, there was a very lazy king who spent all day lounging on his throne. One day, his advisors came to him with a problem: the kingdom was running out of money.",
-    image: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-1.svg",
+    image: "/placeholder.svg",
+    category: "Case Study",
     company: "Mercury",
-    industry: "Suspendisse volutpat",
-    location: "London, United Kingdom",
-    companySize: "11-50",
-    website: "https://example.com/",
-    topics: "Sed sollicitudin augue eu facilisis scelerisque",
+    industry: "Fintech",
+    location: "San Francisco",
+    companySize: "100-500",
+    website: "https://mercury.com",
+    topics: "Design Systems, React, TypeScript",
   }
 
   const currentProject: ProjectData = project || defaultProject
