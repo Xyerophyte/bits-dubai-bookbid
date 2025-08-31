@@ -141,8 +141,34 @@ export function useRealtimeBids(bookId: string) {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) throw new Error("User not authenticated")
+      if (!user) {
+        throw new Error("User not authenticated")
+      }
 
+      // First check if user has a profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (!profile) {
+        // Create profile if it doesn't exist
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert({
+            id: user.id,
+            email: user.email || "",
+            full_name: user.user_metadata?.full_name || null,
+          })
+        
+        if (profileError) {
+          console.error("Error creating profile:", profileError)
+          throw new Error("Failed to create user profile")
+        }
+      }
+
+      // Now place the bid
       const { data, error } = await supabase
         .from("bids")
         .insert({
@@ -156,11 +182,17 @@ export function useRealtimeBids(bookId: string) {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error("Database error placing bid:", error)
+        throw error
+      }
+      
+      console.log("Bid placed successfully:", data)
       return { success: true, data }
     } catch (error) {
       console.error("Error placing bid:", error)
-      return { success: false, error: error instanceof Error ? error.message : "Failed to place bid" }
+      const message = error instanceof Error ? error.message : "Failed to place bid"
+      return { success: false, error: message }
     }
   }
 

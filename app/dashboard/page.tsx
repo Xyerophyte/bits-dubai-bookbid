@@ -19,10 +19,13 @@ import {
   User,
   Settings,
   MessageCircle,
+  Shield,
 } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { isAdminUser } from "@/lib/admin"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 interface UserProfile {
   id: string
@@ -46,6 +49,8 @@ interface UserProfile {
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [authUser, setAuthUser] = useState<SupabaseUser | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -64,6 +69,9 @@ export default function DashboardPage() {
           router.push("/auth")
           return
         }
+
+        setAuthUser(authUser)
+        setIsAdmin(isAdminUser(authUser))
 
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
@@ -163,18 +171,26 @@ export default function DashboardPage() {
             <span className="text-xl font-bold text-foreground">BITS Dubai BookBid</span>
           </Link>
           <nav className="flex items-center space-x-4">
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-xs font-medium text-green-600">Admin</span>
+              </div>
+            )}
             <Link
               href="/books"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Browse Books
             </Link>
-            <Button asChild>
-              <Link href="/sell">
-                <Plus className="h-4 w-4 mr-2" />
-                Sell Book
-              </Link>
-            </Button>
+            {isAdmin && (
+              <Button asChild>
+                <Link href="/sell">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Sell Book
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" size="sm" asChild>
               <Link href="/profile">
                 <Settings className="h-4 w-4" />
@@ -293,12 +309,14 @@ export default function DashboardPage() {
                   <CardDescription>Common tasks to get you started</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button asChild className="w-full justify-start">
-                    <Link href="/sell">
-                      <Plus className="h-4 w-4 mr-2" />
-                      List a New Book
-                    </Link>
-                  </Button>
+                  {isAdmin && (
+                    <Button asChild className="w-full justify-start">
+                      <Link href="/sell">
+                        <Plus className="h-4 w-4 mr-2" />
+                        List a New Book
+                      </Link>
+                    </Button>
+                  )}
                   <Button variant="outline" asChild className="w-full justify-start bg-transparent">
                     <Link href="/books">
                       <BookOpen className="h-4 w-4 mr-2" />
@@ -324,24 +342,41 @@ export default function DashboardPage() {
           <TabsContent value="listings" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">My Listings</h2>
-              <Button asChild>
-                <Link href="/sell">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add New Listing
-                </Link>
-              </Button>
+              {isAdmin && (
+                <Button asChild>
+                  <Link href="/sell">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Listing
+                  </Link>
+                </Button>
+              )}
             </div>
 
             <div className="text-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg mb-2">No listings yet</p>
-              <p className="text-sm mb-6">Start by listing your first book for sale</p>
-              <Button asChild>
-                <Link href="/sell">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Listing
-                </Link>
-              </Button>
+              {isAdmin ? (
+                <>
+                  <p className="text-lg mb-2">No listings yet</p>
+                  <p className="text-sm mb-6">Start by listing your first book for sale</p>
+                  <Button asChild>
+                    <Link href="/sell">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Listing
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg mb-2">No access to create listings</p>
+                  <p className="text-sm mb-6">Only administrators can create book listings</p>
+                  <Button asChild>
+                    <Link href="/books">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Browse Available Books
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </TabsContent>
 

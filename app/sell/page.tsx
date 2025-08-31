@@ -2,17 +2,25 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BookOpen, Upload, X, ArrowLeft, Plus, DollarSign } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { BookOpen, Upload, X, ArrowLeft, Plus, DollarSign, Shield, AlertTriangle } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { isAdminUser } from "@/lib/admin"
+import type { User } from "@supabase/supabase-js"
 
 export default function SellPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [formData, setFormData] = useState({
     title: "",
@@ -25,6 +33,38 @@ export default function SellPage() {
     buyNowPrice: "",
     subject: "",
   })
+  const router = useRouter()
+  const supabase = createClient()
+
+  // Check authentication and admin status
+  useEffect(() => {
+    const checkAuthAndAdmin = async () => {
+      try {
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+        
+        if (error || !authUser) {
+          router.push('/auth')
+          return
+        }
+        
+        setUser(authUser)
+        const adminStatus = isAdminUser(authUser)
+        setIsAdmin(adminStatus)
+        
+        if (!adminStatus) {
+          // Non-admin users will see access denied message
+          console.log('Access denied: User is not an admin')
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error)
+        router.push('/auth')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    checkAuthAndAdmin()
+  }, [router, supabase])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -40,10 +80,152 @@ export default function SellPage() {
     setImages((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] Book listing submitted:", { ...formData, images })
-    // TODO: Submit to backend
+    if (!isAdmin) {
+      console.error('Unauthorized: Only admin can create listings')
+      return
+    }
+    
+    if (!user) {
+      console.error('User not authenticated')
+      return
+    }
+
+    try {
+      // Get category ID based on subject
+      const { data: category } = await supabase
+        .from('categories')
+        .select('id')
+        .ilike('name', `%${formData.subject}%`)
+        .single()
+
+      // Create book listing
+      const { data, error } = await supabase
+        .from('books')
+        .insert({
+          seller_id: user.id,
+          category_id: category?.id,
+          title: formData.title,
+          author: formData.author,
+          edition: formData.edition,
+          isbn: formData.isbn,
+          condition: formData.condition,
+          description: formData.description,
+          listing_type: formData.buyNowPrice ? 'both' : 'auction',
+          starting_price: parseFloat(formData.minBidPrice),
+          buy_now_price: formData.buyNowPrice ? parseFloat(formData.buyNowPrice) : null,
+          auction_end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+          images: images.length > 0 ? images : null
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating book listing:', error)
+        alert('Failed to create book listing: ' + error.message)
+        return
+      }
+
+      console.log('Book listing created successfully:', data)
+      alert('Book listing created successfully!')
+      
+      // Reset form
+      setFormData({
+        title: "",
+        author: "",
+        edition: "",
+        isbn: "",
+        condition: "",
+        description: "",
+        minBidPrice: "",
+        buyNowPrice: "",
+        subject: "",
+      })
+      setImages([])
+      
+      // Redirect to the new book page
+      if (data.id) {
+        router.push(`/books/${data.id}`)
+      }
+    } catch (error) {
+      console.error('Error creating book listing:', error)
+      alert('Failed to create book listing. Please try again.')
+    }
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <BookOpen className="h-12 w-12 mx-auto mb-4 animate-pulse text-primary" />
+          <p className="text-muted-foreground">Checking access permissions...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show access denied for non-admin users
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-16 items-center justify-between px-4">
+            <Link href="/" className="flex items-center space-x-2">
+              <BookOpen className="h-8 w-8 text-primary" />
+              <span className="text-xl font-bold text-foreground">BITS Dubai BookBid</span>
+            </Link>
+            <nav className="flex items-center space-x-4">
+              <Link
+                href="/books"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                Browse Books
+              </Link>
+              <Link
+                href="/dashboard"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                Dashboard
+              </Link>
+            </nav>
+          </div>
+        </header>
+
+        <div className="container mx-auto py-16 px-4 max-w-2xl">
+          <div className="text-center">
+            <Shield className="h-16 w-16 mx-auto mb-6 text-muted-foreground opacity-50" />
+            <h1 className="text-3xl font-bold mb-4">Access Denied</h1>
+            <p className="text-lg text-muted-foreground mb-6">
+              Only authorized administrators can create book listings.
+            </p>
+            
+            <Alert className="mb-6 text-left">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                If you believe you should have access to this feature, please contact the administrator.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild>
+                <Link href="/books">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Browse Books
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard">
+                  Dashboard
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -56,6 +238,10 @@ export default function SellPage() {
             <span className="text-xl font-bold text-foreground">BITS Dubai BookBid</span>
           </Link>
           <nav className="flex items-center space-x-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-600" />
+              <span className="text-xs font-medium text-green-600">Admin</span>
+            </div>
             <Link
               href="/books"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -168,10 +354,8 @@ export default function SellPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="like-new">Like New</SelectItem>
-                      <SelectItem value="good">Good</SelectItem>
-                      <SelectItem value="fair">Fair</SelectItem>
-                      <SelectItem value="poor">Poor</SelectItem>
+                      <SelectItem value="like_new">Like New</SelectItem>
+                      <SelectItem value="used">Used</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

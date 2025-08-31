@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,116 +10,19 @@ import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { BookOpen, Search, Clock, Heart, Plus, X, SlidersHorizontal } from "lucide-react"
+import { BookOpen, Search, Clock, Heart, Plus, X, SlidersHorizontal, Shield } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { isAdminUser } from "@/lib/admin"
+import type { User } from "@supabase/supabase-js"
 
-// Mock data for book listings
-const mockBooks = [
-  {
-    id: 1,
-    title: "Calculus: Early Transcendentals",
-    author: "James Stewart",
-    edition: "8th Edition",
-    condition: "Like New",
-    subject: "Mathematics",
-    currentBid: 850,
-    buyNowPrice: 1200,
-    timeLeft: "2d 14h",
-    imageUrl: "/calculus-textbook.png",
-    seller: "Arjun K.",
-    bidCount: 5,
-    course: "MATH F111",
-    isbn: "9781285741550",
-    listedDate: "2024-01-15",
-  },
-  {
-    id: 2,
-    title: "Physics for Scientists and Engineers",
-    author: "Raymond Serway",
-    edition: "10th Edition",
-    condition: "Good",
-    subject: "Physics",
-    currentBid: 650,
-    buyNowPrice: 950,
-    timeLeft: "1d 8h",
-    imageUrl: "/physics-textbook.png",
-    seller: "Priya S.",
-    bidCount: 3,
-    course: "PHY F111",
-    isbn: "9781337553278",
-    listedDate: "2024-01-14",
-  },
-  {
-    id: 3,
-    title: "Organic Chemistry",
-    author: "Paula Bruice",
-    edition: "7th Edition",
-    condition: "New",
-    subject: "Chemistry",
-    currentBid: 1100,
-    buyNowPrice: 1500,
-    timeLeft: "3d 2h",
-    imageUrl: "/organic-chemistry-textbook.png",
-    seller: "Rahul M.",
-    bidCount: 8,
-    course: "CHEM F111",
-    isbn: "9780321803221",
-    listedDate: "2024-01-13",
-  },
-  {
-    id: 4,
-    title: "Introduction to Algorithms",
-    author: "Thomas Cormen",
-    edition: "4th Edition",
-    condition: "Like New",
-    subject: "Computer Science",
-    currentBid: 900,
-    buyNowPrice: null,
-    timeLeft: "5d 12h",
-    imageUrl: "/algorithms-textbook.png",
-    seller: "Sneha P.",
-    bidCount: 12,
-    course: "CS F211",
-    isbn: "9780262046305",
-    listedDate: "2024-01-12",
-  },
-  {
-    id: 5,
-    title: "Engineering Mechanics: Statics",
-    author: "Russell Hibbeler",
-    edition: "14th Edition",
-    condition: "Good",
-    subject: "Engineering",
-    currentBid: 750,
-    buyNowPrice: 1100,
-    timeLeft: "4d 6h",
-    imageUrl: "/engineering-mechanics-textbook.png",
-    seller: "Ahmed K.",
-    bidCount: 6,
-    course: "ME F112",
-    isbn: "9780133918922",
-    listedDate: "2024-01-11",
-  },
-  {
-    id: 6,
-    title: "Discrete Mathematics and Its Applications",
-    author: "Kenneth Rosen",
-    edition: "8th Edition",
-    condition: "Fair",
-    subject: "Mathematics",
-    currentBid: 500,
-    buyNowPrice: 800,
-    timeLeft: "6d 10h",
-    imageUrl: "/discrete-mathematics-textbook.png",
-    seller: "Fatima A.",
-    bidCount: 2,
-    course: "MATH F113",
-    isbn: "9781259676512",
-    listedDate: "2024-01-10",
-  },
-]
+// No mock data - using only real database data
 
 export default function BooksPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [books, setBooks] = useState<any[]>([]) // Only real database data
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSubject, setSelectedSubject] = useState("all")
   const [selectedCondition, setSelectedCondition] = useState("all")
@@ -129,9 +32,114 @@ export default function BooksPage() {
   const [selectedCourses, setSelectedCourses] = useState<string[]>([])
   const [onlyBuyNow, setOnlyBuyNow] = useState(false)
   const [onlyAuction, setOnlyAuction] = useState(false)
+  const supabase = createClient()
+
+  // Check authentication and admin status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setIsAdmin(isAdminUser(user))
+    }
+
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const currentUser = session?.user || null
+      setUser(currentUser)
+      setIsAdmin(isAdminUser(currentUser))
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  // Load books from database
+  const loadBooks = async () => {
+    try {
+      setLoading(true)
+      const { data: booksData, error } = await supabase
+        .from('books')
+        .select(`
+          id,
+          title,
+          author,
+          edition,
+          condition,
+          starting_price,
+          current_bid,
+          buy_now_price,
+          bid_count,
+          auction_end_time,
+          course_code,
+          isbn,
+          created_at,
+          images,
+          profiles:seller_id (
+            full_name
+          ),
+          categories (
+            name
+          )
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading books:', error)
+        setBooks([])
+        return
+      }
+
+      // Always transform and set books data, even if empty
+      const transformedBooks = (booksData || []).map((book: any) => ({
+        id: book.id,
+        title: book.title,
+        author: book.author || 'Unknown Author',
+        edition: book.edition || '',
+        condition: book.condition,
+        subject: book.categories?.name || 'General',
+        currentBid: book.current_bid || book.starting_price,
+        buyNowPrice: book.buy_now_price,
+        timeLeft: calculateTimeLeft(book.auction_end_time),
+        imageUrl: book.images?.[0] || '/placeholder.svg',
+        seller: book.profiles?.full_name || 'Anonymous',
+        bidCount: book.bid_count || 0,
+        course: book.course_code || '',
+        isbn: book.isbn || '',
+        listedDate: book.created_at.split('T')[0],
+      }))
+      setBooks(transformedBooks)
+      console.log(`Loaded ${transformedBooks.length} books from database`)
+    } catch (error) {
+      console.error('Error loading books:', error)
+      setBooks([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBooks()
+  }, [supabase])
+
+  // Helper function to calculate time left
+  const calculateTimeLeft = (endTime: string) => {
+    if (!endTime) return 'No time limit'
+    
+    const end = new Date(endTime)
+    const now = new Date()
+    const diff = end.getTime() - now.getTime()
+    
+    if (diff <= 0) return 'Ended'
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    
+    return `${days}d ${hours}h`
+  }
 
   const filteredAndSortedBooks = useMemo(() => {
-    const filtered = mockBooks.filter((book) => {
+    const filtered = books.filter((book) => {
       // Search query filter
       const searchLower = searchQuery.toLowerCase()
       const matchesSearch =
@@ -210,17 +218,16 @@ export default function BooksPage() {
       case "new":
         return "bg-green-100 text-green-800"
       case "like new":
+      case "like_new":
         return "bg-blue-100 text-blue-800"
-      case "good":
+      case "used":
         return "bg-yellow-100 text-yellow-800"
-      case "fair":
-        return "bg-orange-100 text-orange-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
   }
 
-  const availableCourses = [...new Set(mockBooks.map((book) => book.course))].sort()
+  const availableCourses = [...new Set(books.map((book) => book.course))].sort()
 
   return (
     <div className="min-h-screen bg-background">
@@ -232,12 +239,20 @@ export default function BooksPage() {
             <span className="text-xl font-bold text-foreground">BITS Dubai BookBid</span>
           </Link>
           <nav className="flex items-center space-x-4">
-            <Button asChild>
-              <Link href="/sell">
-                <Plus className="h-4 w-4 mr-2" />
-                Sell Book
-              </Link>
-            </Button>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-xs font-medium text-green-600">Admin</span>
+              </div>
+            )}
+            {isAdmin && (
+              <Button asChild>
+                <Link href="/sell">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Sell Book
+                </Link>
+              </Button>
+            )}
             <Link
               href="/dashboard"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -250,9 +265,18 @@ export default function BooksPage() {
 
       <div className="container mx-auto py-8 px-4">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Browse Textbooks</h1>
-          <p className="text-muted-foreground">Find affordable textbooks from fellow BITS Dubai students</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Browse Textbooks</h1>
+            <p className="text-muted-foreground">Find affordable textbooks from fellow BITS Dubai students</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={loadBooks}
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
         </div>
 
         {/* Search and Basic Filters */}
@@ -291,9 +315,8 @@ export default function BooksPage() {
                   <SelectContent>
                     <SelectItem value="all">All Conditions</SelectItem>
                     <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="like-new">Like New</SelectItem>
-                    <SelectItem value="good">Good</SelectItem>
-                    <SelectItem value="fair">Fair</SelectItem>
+                    <SelectItem value="like_new">Like New</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={sortBy} onValueChange={setSortBy}>
@@ -399,7 +422,7 @@ export default function BooksPage() {
 
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredAndSortedBooks.length} of {mockBooks.length} books
+            Showing {filteredAndSortedBooks.length} of {books.length} books
           </p>
           {(searchQuery ||
             selectedSubject !== "all" ||
@@ -482,14 +505,40 @@ export default function BooksPage() {
           ))}
         </div>
 
-        {filteredAndSortedBooks.length === 0 && (
+        {loading && (
+          <div className="text-center py-12">
+            <BookOpen className="h-12 w-12 mx-auto mb-4 animate-pulse text-primary" />
+            <h3 className="text-lg font-semibold mb-2">Loading books...</h3>
+            <p className="text-muted-foreground">Fetching the latest textbook listings</p>
+          </div>
+        )}
+
+        {!loading && filteredAndSortedBooks.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No books found</h3>
-            <p className="text-muted-foreground mb-4">Try adjusting your search criteria or filters</p>
-            <Button variant="outline" onClick={clearFilters}>
-              Clear All Filters
-            </Button>
+            <h3 className="text-lg font-semibold mb-2">
+              {books.length === 0 ? 'No books available' : 'No books found'}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {books.length === 0 
+                ? 'Be the first to list a textbook!' 
+                : 'Try adjusting your search criteria or filters'
+              }
+            </p>
+            {books.length === 0 ? (
+              isAdmin && (
+                <Button asChild>
+                  <Link href="/sell">
+                    <Plus className="h-4 w-4 mr-2" />
+                    List Your First Book
+                  </Link>
+                </Button>
+              )
+            ) : (
+              <Button variant="outline" onClick={clearFilters}>
+                Clear All Filters
+              </Button>
+            )}
           </div>
         )}
 

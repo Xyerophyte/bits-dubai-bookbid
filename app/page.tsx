@@ -8,9 +8,13 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { isAdminUser } from "@/lib/admin"
+import type { User } from "@supabase/supabase-js"
 
 export default function LandingPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
@@ -18,6 +22,8 @@ export default function LandingPage() {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setIsAuthenticated(!!user)
+      setUser(user)
+      setIsAdmin(isAdminUser(user))
       if (user) {
         // Optionally redirect authenticated users to dashboard
         // Uncomment the line below if you want to auto-redirect
@@ -28,7 +34,10 @@ export default function LandingPage() {
     checkAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session?.user)
+      const currentUser = session?.user || null
+      setIsAuthenticated(!!currentUser)
+      setUser(currentUser)
+      setIsAdmin(isAdminUser(currentUser))
     })
 
     return () => subscription.unsubscribe()
@@ -46,6 +55,12 @@ export default function LandingPage() {
             {isAuthenticated ? (
               // Authenticated user navigation
               <>
+                {isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-green-600" />
+                    <span className="text-xs font-medium text-green-600">Admin</span>
+                  </div>
+                )}
                 <Link
                   href="/dashboard"
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -58,9 +73,11 @@ export default function LandingPage() {
                 >
                   Browse Books
                 </Link>
-                <Button asChild>
-                  <Link href="/sell">Sell Book</Link>
-                </Button>
+                {isAdmin && (
+                  <Button asChild>
+                    <Link href="/sell">Sell Book</Link>
+                  </Button>
+                )}
                 <Button variant="outline" asChild>
                   <Link href="/profile">Profile</Link>
                 </Button>
