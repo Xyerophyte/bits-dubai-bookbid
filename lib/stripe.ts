@@ -3,8 +3,15 @@ import { loadStripe, type Stripe } from "@stripe/stripe-js"
 let stripePromise: Promise<Stripe | null>
 
 export const getStripe = () => {
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  
+  if (!publishableKey) {
+    console.warn('Stripe publishable key not found. Stripe functionality will be disabled.')
+    return Promise.resolve(null)
+  }
+  
   if (!stripePromise) {
-    stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+    stripePromise = loadStripe(publishableKey)
   }
   return stripePromise
 }

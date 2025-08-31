@@ -2,12 +2,22 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import Stripe from "stripe"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-08-27.basil",
-})
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+
+let stripe: Stripe | null = null
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey, {
+    apiVersion: "2025-08-27.basil",
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is configured
+    if (!stripe) {
+      return NextResponse.json({ error: "Payment processing is not configured" }, { status: 503 })
+    }
+
     const { bookId, amount } = await request.json()
 
     const supabase = await createClient()

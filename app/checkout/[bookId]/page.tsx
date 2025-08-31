@@ -16,7 +16,8 @@ import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { createClient } from "@/lib/supabase/client"
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null
 
 const cardElementOptions = {
   style: {
@@ -378,6 +379,52 @@ export default function CheckoutPage({ params }: { params: { bookId: string } })
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-500" />
           <p className="text-muted-foreground">{error || "Book not found"}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if Stripe is not configured
+  if (!stripePromise) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-16 items-center justify-between px-4">
+            <Link href="/" className="flex items-center space-x-2">
+              <BookOpen className="h-8 w-8 text-primary" />
+              <span className="text-xl font-bold text-foreground">BITS Dubai BookBid</span>
+            </Link>
+          </div>
+        </header>
+
+        <div className="container mx-auto py-8 px-4 max-w-4xl">
+          <Link
+            href={`/books/${params.bookId}`}
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Book
+          </Link>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Processing Unavailable</CardTitle>
+              <CardDescription>Online payments are currently being set up</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Payment processing is currently being configured. Please contact the seller directly for now.
+                  <br /><br />
+                  <strong>Book:</strong> {book.title}<br />
+                  <strong>Price:</strong> ₹{(book.buy_now_price || book.current_bid).toLocaleString()}<br />
+                  <strong>Seller:</strong> {book.profiles.full_name || "Unknown"}
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
